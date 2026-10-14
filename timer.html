@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MOG 집중 타이머</title>
+<script>var MOGT=null;function applyTheme(t){var r=document.documentElement;MOGT=(t==="light"||t==="dark")?t:null;if(MOGT){r.setAttribute("data-theme",MOGT);r.style.colorScheme=MOGT}else{r.removeAttribute("data-theme");r.style.colorScheme="light dark"}}(function(){var t=null;try{var m=location.search.match(/theme=(light|dark)/);t=m?m[1]:localStorage.getItem("mog-theme")}catch(e){}applyTheme(t)})();window.addEventListener("storage",function(e){if(e.key==="mog-theme")applyTheme(e.newValue)});</script>
+<style>
+:root{--fg:#e8e8ec;--mut:#9aa0b4;--line:rgba(255,255,255,.16);--card:rgba(255,255,255,.07);--acc:#8fb8ff;--onacc:#111;--track:rgba(255,255,255,.14)}
+@media (prefers-color-scheme:light){:root{--fg:#1f1f23;--mut:#6b7080;--line:rgba(0,0,0,.14);--card:rgba(0,0,0,.05);--acc:#2f6fe4;--onacc:#fff;--track:rgba(0,0,0,.1)}}
+:root[data-theme=dark]{--fg:#e8e8ec;--mut:#9aa0b4;--line:rgba(255,255,255,.16);--card:rgba(255,255,255,.07);--acc:#8fb8ff;--onacc:#111;--track:rgba(255,255,255,.14)}
+:root[data-theme=light]{--fg:#1f1f23;--mut:#6b7080;--line:rgba(0,0,0,.14);--card:rgba(0,0,0,.05);--acc:#2f6fe4;--onacc:#fff;--track:rgba(0,0,0,.1)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:transparent;color:var(--fg)}
+body{font-family:-apple-system,"Pretendard","Malgun Gothic",sans-serif;padding:16px 14px;display:flex;flex-direction:column;gap:10px}
+.modes{display:flex;gap:6px}
+.modes button{flex:1;background:var(--card);color:var(--mut);border:0;border-radius:8px;padding:7px 4px;font-size:12px;cursor:pointer}
+.modes button.on{background:var(--acc);color:var(--onacc);font-weight:700}
+.time{font:800 clamp(44px,15vw,64px)/1 "Helvetica Neue",Arial,sans-serif;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.bar{height:5px;background:var(--track);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .5s linear}
+.ctl{display:flex;gap:6px;align-items:center}
+.ctl button{background:var(--card);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 14px;font-size:14px;cursor:pointer}
+.ctl .go{background:var(--acc);color:var(--onacc);border:0;font-weight:700;min-width:84px}
+.cnt{margin-left:auto;font-size:12px;color:var(--mut)}
+</style></head><body>
+<div class="modes" id="modes">
+  <button data-m="focus" class="on">🎯 집중 25</button>
+  <button data-m="short">☕ 휴식 5</button>
+  <button data-m="long">🌿 긴 휴식 15</button>
+</div>
+<div class="time" id="time">25:00</div>
+<div class="bar"><i id="fill"></i></div>
+<div class="ctl">
+  <button class="go" id="go">시작</button>
+  <button id="reset">초기화</button>
+  <span class="cnt" id="cnt"></span>
+</div>
+<script>
+var LEN={focus:25*60,short:5*60,long:15*60},KEY='mog-timer-v1';
+var st={mode:'focus',running:false,end:0,left:LEN.focus,done:0,day:''};
+function today(){return new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul'}).format(new Date())}
+function load(){try{var s=JSON.parse(localStorage.getItem(KEY)||'null');if(s)st=s}catch(e){}if(st.day!==today()){st.day=today();st.done=0}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}}
+function beep(){try{var c=new (window.AudioContext||window.webkitAudioContext)(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=880;g.gain.setValueAtTime(.2,c.currentTime);g.gain.exponentialRampToValueAtTime(.001,c.currentTime+1.2);o.start();o.stop(c.currentTime+1.2)}catch(e){}}
+function pad(n){return n<10?'0'+n:''+n}
+function render(){
+  var left=st.running?Math.max(0,(st.end-Date.now())/1000):st.left;
+  var m=Math.floor(Math.ceil(left)/60),s=Math.ceil(left)%60;
+  document.getElementById('time').textContent=pad(m)+':'+pad(s);
+  document.getElementById('fill').style.width=(100-left/LEN[st.mode]*100)+'%';
+  document.getElementById('go').textContent=st.running?'일시정지':(st.left<LEN[st.mode]?'계속':'시작');
+  [].forEach.call(document.querySelectorAll('#modes button'),function(b){b.classList.toggle('on',b.dataset.m===st.mode)});
+  document.getElementById('cnt').textContent='오늘 집중 '+st.done+'회';
+  document.title=(st.running?pad(m)+':'+pad(s)+' · ':'')+'MOG 집중 타이머';
+}
+function tick(){
+  if(st.running&&Date.now()>=st.end){
+    st.running=false;st.left=0;beep();
+    if(st.mode==='focus')st.done++;
+    var next=st.mode==='focus'?(st.done%4===0?'long':'short'):'focus';
+    st.mode=next;st.left=LEN[next];save();
+  }
+  render();
+}
+document.getElementById('go').onclick=function(){
+  if(st.running){st.left=Math.max(0,(st.end-Date.now())/1000);st.running=false}
+  else{st.running=true;st.end=Date.now()+st.left*1000}
+  save();render();
+};
+document.getElementById('reset').onclick=function(){st.running=false;st.left=LEN[st.mode];save();render()};
+document.getElementById('modes').onclick=function(e){var m=e.target.dataset.m;if(!m)return;st.mode=m;st.running=false;st.left=LEN[m];save();render()};
+window.addEventListener('storage',function(e){if(e.key===KEY){load();render()}});
+load();render();setInterval(tick,500);
+</script></body></html>
