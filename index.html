@@ -16,6 +16,8 @@ body{font-family:-apple-system,"Pretendard","Malgun Gothic",sans-serif;padding:1
 .t span,.ft span{height:200%;display:flex;align-items:center;justify-content:center}
 .b span,.fb span{height:200%;margin-top:-100%;display:flex;align-items:center;justify-content:center}
 .ft,.fb{display:none}
+.d>.f{top:0;bottom:0;height:auto;z-index:2;display:flex;align-items:center;justify-content:center;backface-visibility:visible}
+.go>.f{display:none}
 .go .ft{display:block;transform-origin:50% 100%;animation:ft .24s ease-in forwards;z-index:3}
 .go .fb{display:block;transform-origin:50% 0;transform:rotateX(90deg);animation:fb .24s .24s ease-out forwards;z-index:3}
 @keyframes ft{to{transform:rotateX(-90deg)}}
@@ -36,7 +38,7 @@ function mk(host,groups){
     var p=document.createElement('div');p.className='pair';
     for(var i=0;i<n;i++){
       var d=document.createElement('div');d.className='d';d.dataset.v='0';
-      d.innerHTML='<div class="t"><span>0</span></div><div class="b"><span>0</span></div><div class="ft"><span>0</span></div><div class="fb"><span>0</span></div>';
+      d.innerHTML='<div class="f"><span>0</span></div><div class="t"><span>0</span></div><div class="b"><span>0</span></div><div class="ft"><span>0</span></div><div class="fb"><span>0</span></div>';
       p.appendChild(d);ds.push(d)
     }
     host.appendChild(p)
@@ -46,6 +48,7 @@ function mk(host,groups){
 function set(d,v){
   v=String(v);var old=d.dataset.v;if(old===v)return;
   d.dataset.v=v;
+  d.querySelector('.f span').textContent=v;
   d.querySelector('.t span').textContent=v;
   d.querySelector('.ft span').textContent=old;
   d.querySelector('.fb span').textContent=v;
