@@ -2,42 +2,48 @@
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MOG 오늘</title>
+<script>try{var m=location.search.match(/theme=(light|dark)/);if(m)document.documentElement.setAttribute("data-theme",m[1])}catch(e){}</script>
 <style>
+:root{--fg:#e8e8ec;--fg2:#c9cdda;--mut:#9aa0b4;--mut2:#6c7080;--acc:#8fb8ff;--onacc:#111;--track:rgba(255,255,255,.14);--card:rgba(255,255,255,.06);--card2:rgba(255,255,255,.08);--line:rgba(255,255,255,.16);--late:#ff8f8f;--next:rgba(143,184,255,.16);--ok:#8fe3a8;--okb:#2f5a40;--warn:#ffcf8f;--warnb:#6a5230;--cs:dark;}
+@media (prefers-color-scheme:light){:root{--fg:#1f1f23;--fg2:#3b3f4d;--mut:#6b7080;--mut2:#9aa0ad;--acc:#2f6fe4;--onacc:#fff;--track:rgba(0,0,0,.1);--card:rgba(0,0,0,.04);--card2:rgba(0,0,0,.05);--line:rgba(0,0,0,.14);--late:#d64545;--next:rgba(47,111,228,.1);--ok:#1e8e4e;--okb:#9ad3b0;--warn:#b26a00;--warnb:#e5c28a;--cs:light;}}
+:root[data-theme=dark]{--fg:#e8e8ec;--fg2:#c9cdda;--mut:#9aa0b4;--mut2:#6c7080;--acc:#8fb8ff;--onacc:#111;--track:rgba(255,255,255,.14);--card:rgba(255,255,255,.06);--card2:rgba(255,255,255,.08);--line:rgba(255,255,255,.16);--late:#ff8f8f;--next:rgba(143,184,255,.16);--ok:#8fe3a8;--okb:#2f5a40;--warn:#ffcf8f;--warnb:#6a5230;--cs:dark;}
+:root[data-theme=light]{--fg:#1f1f23;--fg2:#3b3f4d;--mut:#6b7080;--mut2:#9aa0ad;--acc:#2f6fe4;--onacc:#fff;--track:rgba(0,0,0,.1);--card:rgba(0,0,0,.04);--card2:rgba(0,0,0,.05);--line:rgba(0,0,0,.14);--late:#d64545;--next:rgba(47,111,228,.1);--ok:#1e8e4e;--okb:#9ad3b0;--warn:#b26a00;--warnb:#e5c28a;--cs:light;}
+
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:#191919;color:#e8e8ec}
+html,body{background:transparent;color:var(--fg)}
 body{font-family:-apple-system,"Pretendard","Malgun Gothic",sans-serif;max-width:560px;margin:0 auto;padding:18px 14px 80px}
 .top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-.date{font-size:13px;color:#9aa0b4;letter-spacing:.06em}
+.date{font-size:13px;color:var(--mut);letter-spacing:.06em}
 .now{font:800 34px/1.1 "Helvetica Neue",Arial,sans-serif;letter-spacing:-.02em}
-#st{background:#262629;border:1px solid #3a3a40;color:#9aa0b4;border-radius:999px;padding:6px 11px;font-size:12px;cursor:pointer;white-space:nowrap}
-#st.ok{color:#8fe3a8;border-color:#2f5a40}
-#st.warn{color:#ffcf8f;border-color:#6a5230}
-.sum{margin:12px 0 4px;font-size:15px;color:#c9cdda}
-.sum b{color:#8fb8ff;font-size:20px}
-.bar{height:5px;background:#34343a;border-radius:3px;overflow:hidden;margin-bottom:14px}
-.bar i{display:block;height:100%;width:0;background:#8fb8ff;transition:width .3s}
+#st{background:var(--card2);border:1px solid var(--line);color:var(--mut);border-radius:999px;padding:6px 11px;font-size:12px;cursor:pointer;white-space:nowrap}
+#st.ok{color:var(--ok);border-color:var(--okb)}
+#st.warn{color:var(--warn);border-color:var(--warnb)}
+.sum{margin:12px 0 4px;font-size:15px;color:var(--fg2)}
+.sum b{color:var(--acc);font-size:20px}
+.bar{height:5px;background:var(--track);border-radius:3px;overflow:hidden;margin-bottom:14px}
+.bar i{display:block;height:100%;width:0;background:var(--acc);transition:width .3s}
 .add{display:flex;gap:6px;margin-bottom:10px}
-.add input,.add select{background:#262629;color:#fff;border:1px solid #3a3a40;border-radius:8px;padding:10px;font-size:15px}
+.add input,.add select{color-scheme:var(--cs);background:var(--card2);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px;font-size:15px}
 .add input[type=text]{flex:1;min-width:0}
-.add button{background:#8fb8ff;color:#111;border:0;border-radius:8px;padding:0 16px;font-size:15px;font-weight:700;cursor:pointer}
+.add button{background:var(--acc);color:var(--onacc);border:0;border-radius:8px;padding:0 16px;font-size:15px;font-weight:700;cursor:pointer}
 .tabs{display:flex;gap:6px;margin:14px 0 8px}
-.tabs button{flex:1;background:#262629;color:#9aa0b4;border:0;border-radius:8px;padding:8px;font-size:14px;cursor:pointer}
-.tabs button.on{background:#34343a;color:#fff;font-weight:700}
-h3{font-size:12px;color:#8a90a6;margin:16px 0 6px;font-weight:600}
-.item{display:flex;align-items:center;gap:10px;background:#222225;border-radius:9px;padding:11px 10px;margin-bottom:6px}
-.item input[type=checkbox]{width:20px;height:20px;accent-color:#8fb8ff;flex:none}
+.tabs button{flex:1;background:var(--card2);color:var(--mut);border:0;border-radius:8px;padding:8px;font-size:14px;cursor:pointer}
+.tabs button.on{background:var(--track);color:var(--fg);font-weight:700}
+h3{font-size:12px;color:var(--mut);margin:16px 0 6px;font-weight:600}
+.item{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:9px;padding:11px 10px;margin-bottom:6px}
+.item input[type=checkbox]{width:20px;height:20px;accent-color:var(--acc);flex:none}
 .item .tx{flex:1;font-size:15px;word-break:break-all}
-.item .tm{font-size:12px;color:#8fb8ff;flex:none}
-.item.done .tx{text-decoration:line-through;color:#6c7080}
-.item.done .tm{color:#6c7080}
-.item.late{border-left:3px solid #ff8f8f}
-.item.late .tm{color:#ff8f8f}
-.item.next{border-left:3px solid #8fb8ff;background:#26303f}
-.x{background:none;border:0;color:#6c7080;font-size:15px;cursor:pointer;padding:2px 6px}
+.item .tm{font-size:12px;color:var(--acc);flex:none}
+.item.done .tx{text-decoration:line-through;color:var(--mut2)}
+.item.done .tm{color:var(--mut2)}
+.item.late{border-left:3px solid var(--late)}
+.item.late .tm{color:var(--late)}
+.item.next{border-left:3px solid var(--acc);background:var(--next)}
+.x{background:none;border:0;color:var(--mut2);font-size:15px;cursor:pointer;padding:2px 6px}
 .mv{font-size:11px}
-.empty{color:#6c7080;font-size:14px;text-align:center;padding:26px 0}
+.empty{color:var(--mut2);font-size:14px;text-align:center;padding:26px 0}
 .foot{margin-top:22px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
-.foot button{background:none;border:1px solid #3a3a40;color:#8a90a6;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer}
+.foot button{background:none;border:1px solid var(--line);color:var(--mut);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer}
 </style></head><body>
 <div class="top">
   <div><div class="date" id="date"></div><div class="now" id="now"></div></div>
