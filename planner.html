@@ -70,6 +70,7 @@ h3{font-size:12px;color:#8a90a6;margin:16px 0 6px;font-weight:600}
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 var KEY='mog-planner-v1',CID_KEY='mog-gcid',LIST_KEY='mog-glist',CONN_KEY='mog-gconn';
+var DEFAULT_CID='272164063145-95np6kah29g3a5kqb10c8nassgjvvhan.apps.googleusercontent.com'; // 공개돼도 안전한 값(비밀 아님)
 var SCOPE='https://www.googleapis.com/auth/tasks';
 var API='https://tasks.googleapis.com/tasks/v1';
 var tab='today',tasks=[];
@@ -98,7 +99,7 @@ function setStatus(){
   b.className='ok';b.textContent='☁ 동기화됨'+(pending?' …':'');
 }
 function initClient(){
-  var cid=lsGet(CID_KEY);
+  var cid=lsGet(CID_KEY)||DEFAULT_CID;
   if(tokClient||!cid||!(window.google&&google.accounts&&google.accounts.oauth2))return !!tokClient;
   tokClient=google.accounts.oauth2.initTokenClient({client_id:cid,scope:SCOPE,callback:function(){}});
   return true;
@@ -183,7 +184,7 @@ document.getElementById('st').onclick=async function(){
     if(confirm('Google 연결을 해제할까요?\n(Google Tasks의 데이터는 그대로 남아요)')){connected=false;lsDel(CONN_KEY);tok='';tokExp=0;setStatus()}
     return;
   }
-  var cid=lsGet(CID_KEY);
+  var cid=lsGet(CID_KEY)||DEFAULT_CID;
   if(!cid){
     cid=prompt('Google Cloud에서 만든 OAuth Client ID를 붙여넣으세요\n(예: 1234-abc.apps.googleusercontent.com)');
     if(!cid)return;lsSet(CID_KEY,cid.trim());tokClient=null;
@@ -195,7 +196,7 @@ document.getElementById('st').onclick=async function(){
   }catch(e){stMsg='☁ 연결 실패: '+e.message;setStatus()}
 };
 document.getElementById('cid').onclick=function(){
-  var c=prompt('OAuth Client ID',lsGet(CID_KEY)||'');if(c===null)return;
+  var c=prompt('OAuth Client ID',lsGet(CID_KEY)||DEFAULT_CID);if(c===null)return;
   lsSet(CID_KEY,c.trim());tokClient=null;tok='';tokExp=0;lsDel(LIST_KEY);setStatus();
 };
 document.addEventListener('visibilitychange',function(){if(!document.hidden)pull()});
