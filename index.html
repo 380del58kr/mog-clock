@@ -2,28 +2,30 @@
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:#101015}
-body{color:#eee;font-family:-apple-system,"Pretendard","Malgun Gothic",sans-serif;padding:14px 12px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:10px;min-height:100vh}
-.date{font-size:12px;letter-spacing:.08em;color:#9aa0b4}
+:root{--card:#26262d;--card2:#1d1d23;--ink:#f4f4f6;--line:#ffffff;--sub:#6b7186;--bar:#d9dbe6;--fill:#4a78d6}
+@media (prefers-color-scheme:dark){:root{--card:#f4f4f6;--card2:#e4e4e8;--ink:#16161a;--line:#101015;--sub:#9aa0b4;--bar:#2a2c38;--fill:#8fb8ff}}
+html,body{background:transparent}
+body{color:var(--sub);font-family:-apple-system,"Pretendard","Malgun Gothic",sans-serif;padding:14px 12px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:10px;min-height:100vh}
+.date{font-size:12px;letter-spacing:.08em;color:var(--sub)}
 .row{display:flex;align-items:center;gap:4px}
 .pair{display:flex;gap:3px}
 .sep{font:700 26px/1 monospace;color:#6b7190;padding:0 1px;animation:blink 1s steps(1) infinite}
 @keyframes blink{50%{opacity:.25}}
 .d{position:relative;width:clamp(22px,7.2vw,40px);height:clamp(34px,11vw,60px);perspective:400px;font:700 clamp(26px,8.4vw,46px)/1 "Arial Narrow",Arial,sans-serif}
-.d>div{position:absolute;left:0;right:0;height:50%;overflow:hidden;background:#f4f4f6;color:#16161a;backface-visibility:hidden}
+.d>div{position:absolute;left:0;right:0;height:50%;overflow:hidden;background:var(--card);color:var(--ink);backface-visibility:hidden}
 .t,.ft{top:0;border-radius:6px 6px 0 0}
-.b,.fb{bottom:0;border-radius:0 0 6px 6px;background:#e4e4e8}
+.b,.fb{bottom:0;border-radius:0 0 6px 6px;background:var(--card2)}
 .t span,.ft span{height:200%;display:flex;align-items:center;justify-content:center}
 .b span,.fb span{height:200%;margin-top:-100%;display:flex;align-items:center;justify-content:center}
-.d::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:#101015;z-index:5}
+.d::after{content:"";position:absolute;left:0;right:0;top:50%;height:2px;margin-top:-1px;background:var(--line);z-index:5}
 .ft,.fb{display:none}
 .go .ft{display:block;transform-origin:50% 100%;animation:ft .28s ease-in forwards;z-index:3}
 .go .fb{display:block;transform-origin:50% 0;transform:rotateX(90deg);animation:fb .28s .28s ease-out forwards;z-index:3}
 @keyframes ft{to{transform:rotateX(-90deg)}}
 @keyframes fb{to{transform:rotateX(0)}}
 .prog{width:100%;max-width:300px;display:flex;flex-direction:column;gap:4px}
-.bar{height:5px;background:#2a2c38;border-radius:3px;overflow:hidden}
-.bar i{display:block;height:100%;width:0;background:#8fb8ff;border-radius:3px;transition:width 1s linear}
+.bar{height:5px;background:var(--bar);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--fill);border-radius:3px;transition:width 1s linear}
 .lbl{display:flex;justify-content:space-between;font-size:11px;color:#8a90a6}
 </style></head><body>
 <div class="date" id="date"></div>
@@ -57,11 +59,14 @@ function put(ds,str){for(var i=0;i<ds.length;i++)set(ds[i],str.charAt(i))}
 function z(n){return n<10?'0'+n:''+n}
 var clk=mk(document.getElementById('clock'),[2,2,2]);
 var DAYS=['일','월','화','수','목','금','토'];
+var fmt=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',weekday:'short'});
+var WK={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6};
 function tick(){
-  var n=new Date();
-  put(clk,z(n.getHours())+z(n.getMinutes())+z(n.getSeconds()));
-  document.getElementById('date').textContent=n.getFullYear()+'.'+z(n.getMonth()+1)+'.'+z(n.getDate())+' ('+DAYS[n.getDay()]+')';
-  var p=(n.getHours()*3600+n.getMinutes()*60+n.getSeconds())/864;
+  var o={};fmt.formatToParts(new Date()).forEach(function(x){o[x.type]=x.value});
+  var h=+o.hour,m=+o.minute,s=+o.second;
+  put(clk,z(h)+z(m)+z(s));
+  document.getElementById('date').textContent=o.year+'.'+o.month+'.'+o.day+' ('+DAYS[WK[o.weekday]]+')';
+  var p=(h*3600+m*60+s)/864;
   document.getElementById('fill').style.width=p+'%';
   document.getElementById('pct').textContent=Math.floor(p)+'%'
 }
