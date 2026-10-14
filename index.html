@@ -2,29 +2,27 @@
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-:root{--card:#f4f4f6;--card2:#e4e4e8;--ink:#16161a;--line:#191919;--sub:#9aa0b4;--bar:#34343a;--fill:#8fb8ff}
 html,body{background:#191919}
-body{color:var(--sub);font-family:-apple-system,"Pretendard","Malgun Gothic",sans-serif;padding:14px 12px;display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;gap:10px;min-height:100vh}
-.date{font-size:12px;letter-spacing:.08em;color:var(--sub)}
-.row{display:flex;align-items:center;gap:4px}
-.pair{display:flex;gap:3px}
-.sep{font:700 26px/1 monospace;color:#6b7190;padding:0 1px;animation:blink 1s steps(1) infinite}
-@keyframes blink{50%{opacity:.25}}
-.d{position:relative;width:clamp(22px,7.2vw,40px);height:clamp(34px,11vw,60px);perspective:400px;font:700 clamp(26px,8.4vw,46px)/1 "Arial Narrow",Arial,sans-serif}
-.d>div{position:absolute;left:0;right:0;height:50%;overflow:hidden;background:var(--card);color:var(--ink);backface-visibility:hidden}
-.t,.ft{top:0;border-radius:6px 6px 0 0}
-.b,.fb{bottom:0;border-radius:0 0 6px 6px;background:var(--card2)}
+body{font-family:-apple-system,"Pretendard","Malgun Gothic",sans-serif;padding:16px 14px;display:flex;flex-direction:column;align-items:flex-start;gap:12px;min-height:100vh}
+.date{font-size:12px;letter-spacing:.08em;color:#9aa0b4}
+.row{display:flex;align-items:center;gap:7px}
+.pair{display:flex;background:#fff;border-radius:7px;padding:0 5px;border:2px solid #fff;box-shadow:0 0 0 1px #2a2a2a}
+.sep{display:flex;flex-direction:column;gap:9px}
+.sep i{display:block;width:6px;height:6px;background:#fff;border-radius:1px}
+.d{position:relative;width:clamp(24px,7.4vw,36px);height:clamp(40px,12vw,58px);perspective:420px;font:800 clamp(34px,10vw,52px)/1 "Helvetica Neue",Arial,sans-serif;letter-spacing:-.02em}
+.d>div{position:absolute;left:0;right:0;height:calc(50% + .5px);overflow:hidden;background:#fff;color:#111;backface-visibility:hidden}
+.t,.ft{top:0}
+.b,.fb{bottom:0}
 .t span,.ft span{height:200%;display:flex;align-items:center;justify-content:center}
 .b span,.fb span{height:200%;margin-top:-100%;display:flex;align-items:center;justify-content:center}
-.d::after{content:none}
 .ft,.fb{display:none}
-.go .ft{display:block;transform-origin:50% 100%;animation:ft .28s ease-in forwards;z-index:3}
-.go .fb{display:block;transform-origin:50% 0;transform:rotateX(90deg);animation:fb .28s .28s ease-out forwards;z-index:3}
+.go .ft{display:block;transform-origin:50% 100%;animation:ft .24s ease-in forwards;z-index:3}
+.go .fb{display:block;transform-origin:50% 0;transform:rotateX(90deg);animation:fb .24s .24s ease-out forwards;z-index:3}
 @keyframes ft{to{transform:rotateX(-90deg)}}
 @keyframes fb{to{transform:rotateX(0)}}
 .prog{width:100%;max-width:300px;display:flex;flex-direction:column;gap:4px}
-.bar{height:5px;background:var(--bar);border-radius:3px;overflow:hidden}
-.bar i{display:block;height:100%;width:0;background:var(--fill);border-radius:3px;transition:width 1s linear}
+.bar{height:4px;background:#34343a;border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:#8fb8ff;border-radius:3px;transition:width 1s linear}
 .lbl{display:flex;justify-content:space-between;font-size:11px;color:#8a90a6}
 </style></head><body>
 <div class="date" id="date"></div>
@@ -34,7 +32,7 @@ body{color:var(--sub);font-family:-apple-system,"Pretendard","Malgun Gothic",san
 function mk(host,groups){
   var ds=[];
   groups.forEach(function(n,gi){
-    if(gi){var s=document.createElement('div');s.className='sep';s.textContent=':';host.appendChild(s)}
+    if(gi){var s=document.createElement('div');s.className='sep';s.innerHTML='<i></i><i></i>';host.appendChild(s)}
     var p=document.createElement('div');p.className='pair';
     for(var i=0;i<n;i++){
       var d=document.createElement('div');d.className='d';d.dataset.v='0';
@@ -52,7 +50,7 @@ function set(d,v){
   d.querySelector('.ft span').textContent=old;
   d.querySelector('.fb span').textContent=v;
   d.classList.remove('go');void d.offsetWidth;d.classList.add('go');
-  setTimeout(function(){d.querySelector('.b span').textContent=v;d.classList.remove('go')},580)
+  setTimeout(function(){d.querySelector('.b span').textContent=v;d.classList.remove('go')},520)
 }
 function put(ds,str){for(var i=0;i<ds.length;i++)set(ds[i],str.charAt(i))}
 function z(n){return n<10?'0'+n:''+n}
