@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MOG 날씨</title>
+<script>var MOGT=null;function applyTheme(t){var r=document.documentElement;MOGT=(t==="light"||t==="dark")?t:null;if(MOGT){r.setAttribute("data-theme",MOGT);r.style.colorScheme=MOGT}else{r.removeAttribute("data-theme");r.style.colorScheme="light dark"}}(function(){var t=null;try{var m=location.search.match(/theme=(light|dark)/);t=m?m[1]:localStorage.getItem("mog-theme")}catch(e){}applyTheme(t)})();window.addEventListener("storage",function(e){if(e.key==="mog-theme")applyTheme(e.newValue)});</script>
+<style>
+:root{--fg:#e8e8ec;--mut:#9aa0b4;--line:rgba(255,255,255,.14);--card:rgba(255,255,255,.06);--acc:#8fb8ff}
+@media (prefers-color-scheme:light){:root{--fg:#1f1f23;--mut:#6b7080;--line:rgba(0,0,0,.12);--card:rgba(0,0,0,.04);--acc:#2f6fe4}}
+:root[data-theme=dark]{--fg:#e8e8ec;--mut:#9aa0b4;--line:rgba(255,255,255,.14);--card:rgba(255,255,255,.06);--acc:#8fb8ff}
+:root[data-theme=light]{--fg:#1f1f23;--mut:#6b7080;--line:rgba(0,0,0,.12);--card:rgba(0,0,0,.04);--acc:#2f6fe4}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:transparent;color:var(--fg)}
+body{font-family:-apple-system,"Pretendard","Malgun Gothic",sans-serif;padding:16px 14px;display:flex;flex-direction:column;gap:12px}
+.top{display:flex;align-items:center;gap:12px}
+.ic{font-size:44px;line-height:1}
+.tp{font:800 40px/1 "Helvetica Neue",Arial,sans-serif;letter-spacing:-.02em}
+.meta{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--mut)}
+.meta b{color:var(--fg);font-size:14px;font-weight:600}
+.days{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.day{background:var(--card);border-radius:10px;padding:8px 4px;text-align:center;font-size:12px;display:flex;flex-direction:column;gap:3px}
+.day.today{outline:1px solid var(--acc)}
+.day .w{color:var(--mut)}
+.day .e{font-size:20px;line-height:1.2}
+.day .t{font-weight:600}
+.day .t i{font-style:normal;color:var(--mut);font-weight:400}
+.day .p{color:var(--acc);font-size:11px}
+.foot{font-size:11px;color:var(--mut);display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:4px}
+.err{color:var(--mut);font-size:13px;padding:20px 0}
+</style></head><body>
+<div id="app"><div class="err">날씨 불러오는 중…</div></div>
+<script>
+var q=new URLSearchParams(location.search);
+var LAT=parseFloat(q.get('lat'))||37.5665,LON=parseFloat(q.get('lon'))||126.978,CITY=q.get('city')||'서울';
+var KEY='mog-weather-v1',TTL=30*60*1000;
+var DAYS=['일','월','화','수','목','금','토'];
+var WMO={0:['맑음','☀️'],1:['대체로 맑음','🌤️'],2:['구름 조금','⛅'],3:['흐림','☁️'],45:['안개','🌫️'],48:['안개','🌫️'],
+ 51:['이슬비','🌦️'],53:['이슬비','🌦️'],55:['이슬비','🌦️'],56:['얼음 이슬비','🌧️'],57:['얼음 이슬비','🌧️'],
+ 61:['비','🌧️'],63:['비','🌧️'],65:['강한 비','🌧️'],66:['얼음비','🌧️'],67:['얼음비','🌧️'],
+ 71:['눈','🌨️'],73:['눈','🌨️'],75:['많은 눈','❄️'],77:['싸락눈','🌨️'],80:['소나기','🌦️'],81:['소나기','🌦️'],82:['강한 소나기','⛈️'],
+ 85:['눈 소나기','🌨️'],86:['눈 소나기','🌨️'],95:['뇌우','⛈️'],96:['뇌우·우박','⛈️'],99:['뇌우·우박','⛈️']};
+function wm(c,night){var w=WMO[c]||['-','🌡️'];var e=w[1];if(night&&(c===0||c===1))e='🌙';return [w[0],e]}
+function grade(v,cuts){if(v==null)return null;var n=[['좋음','#4caf50'],['보통','#e0b100'],['나쁨','#f08a24'],['매우나쁨','#e5484d']];
+  for(var i=0;i<cuts.length;i++){if(v<=cuts[i])return n[i]}return n[3]}
+function r(n){return Math.round(n)}
+function render(d){
+  var c=d.w.current,dy=d.w.daily,night=c.is_day===0,x=wm(c.weather_code,night);
+  var html='<div class="top"><div class="ic">'+x[1]+'</div><div class="tp">'+r(c.temperature_2m)+'°</div>'+
+    '<div class="meta"><b>'+CITY+' · '+x[0]+'</b><span>체감 '+r(c.apparent_temperature)+'° · 습도 '+c.relative_humidity_2m+'%</span></div></div>';
+  html+='<div class="days">';
+  for(var i=0;i<dy.time.length;i++){
+    var t=dy.time[i],wd=DAYS[new Date(t+'T00:00:00Z').getUTCDay()],y=wm(dy.weather_code[i]);
+    html+='<div class="day'+(i===0?' today':'')+'"><span class="w">'+(i===0?'오늘':wd)+'</span><span class="e">'+y[1]+'</span>'+
+      '<span class="t">'+r(dy.temperature_2m_max[i])+'° <i>'+r(dy.temperature_2m_min[i])+'°</i></span>'+
+      '<span class="p">💧'+(dy.precipitation_probability_max[i]==null?'-':dy.precipitation_probability_max[i])+'%</span></div>';
+  }
+  html+='</div>';
+  var f='';
+  if(d.a&&d.a.current){var a=d.a.current,g10=grade(a.pm10,[30,80,150]),g25=grade(a.pm2_5,[15,35,75]);
+    if(g10)f+='<span><span class="dot" style="background:'+g10[1]+'"></span>미세먼지 '+g10[0]+'</span>';
+    if(g25)f+='<span><span class="dot" style="background:'+g25[1]+'"></span>초미세먼지 '+g25[0]+'</span>';}
+  f+='<span>'+new Date(d.ts).toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hour12:false})+' 업데이트</span>';
+  html+='<div class="foot">'+f+'</div>';
+  document.getElementById('app').innerHTML=html;
+}
+function get(url){return fetch(url).then(function(r){if(!r.ok)throw new Error(r.status);return r.json()})}
+function load(){
+  var cached=null;try{cached=JSON.parse(localStorage.getItem(KEY)||'null')}catch(e){}
+  if(cached&&cached.lat===LAT&&cached.lon===LON){render(cached);if(Date.now()-cached.ts<TTL)return}
+  var base='latitude='+LAT+'&longitude='+LON+'&timezone=Asia%2FSeoul';
+  var w=get('https://api.open-meteo.com/v1/forecast?'+base+'&current=temperature_2m,apparent_temperature,relative_humidity_2m,weather_code,is_day&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&forecast_days=5');
+  var a=get('https://air-quality-api.open-meteo.com/v1/air-quality?'+base+'&current=pm10,pm2_5').catch(function(){return null});
+  Promise.all([w,a]).then(function(v){
+    var d={w:v[0],a:v[1],ts:Date.now(),lat:LAT,lon:LON};
+    try{localStorage.setItem(KEY,JSON.stringify(d))}catch(e){}
+    render(d);
+  }).catch(function(){if(!cached)document.getElementById('app').innerHTML='<div class="err">날씨를 불러오지 못했어요 (인터넷 연결 확인)</div>'});
+}
+load();setInterval(load,TTL);
+</script></body></html>
