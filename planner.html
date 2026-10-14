@@ -2,7 +2,7 @@
 <html lang="ko"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MOG 오늘</title>
-<script>var MOGT=null;function applyTheme(t){var r=document.documentElement;MOGT=(t==="light"||t==="dark")?t:null;if(MOGT){r.setAttribute("data-theme",MOGT);r.style.colorScheme=MOGT}else{r.removeAttribute("data-theme");r.style.colorScheme="light dark"}}(function(){var t=null;try{var m=location.search.match(/theme=(light|dark)/);t=m?m[1]:localStorage.getItem("mog-theme")}catch(e){}applyTheme(t)})();window.addEventListener("storage",function(e){if(e.key==="mog-theme")applyTheme(e.newValue)});</script>
+<script>try{if(/[?&]compact=1/.test(location.search))document.documentElement.classList.add("compact")}catch(e){}var MOGT=null;function applyTheme(t){var r=document.documentElement;MOGT=(t==="light"||t==="dark")?t:null;if(MOGT){r.setAttribute("data-theme",MOGT);r.style.colorScheme=MOGT}else{r.removeAttribute("data-theme");r.style.colorScheme="light dark"}}(function(){var t=null;try{var m=location.search.match(/theme=(light|dark)/);t=m?m[1]:localStorage.getItem("mog-theme")}catch(e){}applyTheme(t)})();window.addEventListener("storage",function(e){if(e.key==="mog-theme")applyTheme(e.newValue)});</script>
 <style>
 :root{--fg:#e8e8ec;--fg2:#c9cdda;--mut:#9aa0b4;--mut2:#6c7080;--acc:#8fb8ff;--onacc:#111;--track:rgba(255,255,255,.14);--card:rgba(255,255,255,.06);--card2:rgba(255,255,255,.08);--line:rgba(255,255,255,.16);--late:#ff8f8f;--next:rgba(143,184,255,.16);--ok:#8fe3a8;--okb:#2f5a40;--warn:#ffcf8f;--warnb:#6a5230;--cs:dark;}
 @media (prefers-color-scheme:light){:root{--fg:#1f1f23;--fg2:#3b3f4d;--mut:#6b7080;--mut2:#9aa0ad;--acc:#2f6fe4;--onacc:#fff;--track:rgba(0,0,0,.1);--card:rgba(0,0,0,.04);--card2:rgba(0,0,0,.05);--line:rgba(0,0,0,.14);--late:#d64545;--next:rgba(47,111,228,.1);--ok:#1e8e4e;--okb:#9ad3b0;--warn:#b26a00;--warnb:#e5c28a;--cs:light;}}
@@ -16,6 +16,10 @@ body{font-family:-apple-system,"Pretendard","Malgun Gothic",sans-serif;max-width
 .date{font-size:13px;color:var(--mut);letter-spacing:.06em}
 .now{font:800 34px/1.1 "Helvetica Neue",Arial,sans-serif;letter-spacing:-.02em}
 #th{background:var(--card2);border:1px solid var(--line);color:var(--fg);border-radius:999px;padding:6px 10px;font-size:12px;cursor:pointer;white-space:nowrap}
+html.compact .tl,html.compact .foot{display:none}
+html.compact .top{justify-content:flex-end}
+html.compact body{padding-top:8px}
+html.compact .sum{margin-top:2px;font-size:17px}
 .tr{display:flex;gap:6px;align-items:center}
 #st{background:var(--card2);border:1px solid var(--line);color:var(--mut);border-radius:999px;padding:6px 11px;font-size:12px;cursor:pointer;white-space:nowrap}
 #st.ok{color:var(--ok);border-color:var(--okb)}
@@ -48,7 +52,7 @@ h3{font-size:12px;color:var(--mut);margin:16px 0 6px;font-weight:600}
 .foot button{background:none;border:1px solid var(--line);color:var(--mut);border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer}
 </style></head><body>
 <div class="top">
-  <div><div class="date" id="date"></div><div class="now" id="now"></div></div>
+  <div class="tl"><div class="date" id="date"></div><div class="now" id="now"></div></div>
   <div class="tr"><button id="th" type="button" title="테마 바꾸기">🌓 자동</button><button id="st" type="button">☁ Google 연결</button></div>
 </div>
 <div class="sum" id="sum"></div>
