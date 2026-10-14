@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MOG 오늘</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:#191919;color:#e8e8ec}
+body{font-family:-apple-system,"Pretendard","Malgun Gothic",sans-serif;max-width:560px;margin:0 auto;padding:18px 14px 80px}
+.top{display:flex;justify-content:space-between;align-items:flex-end}
+.date{font-size:13px;color:#9aa0b4;letter-spacing:.06em}
+.now{font:800 34px/1.1 "Helvetica Neue",Arial,sans-serif;letter-spacing:-.02em}
+.sum{margin:12px 0 4px;font-size:15px;color:#c9cdda}
+.sum b{color:#8fb8ff;font-size:20px}
+.bar{height:5px;background:#34343a;border-radius:3px;overflow:hidden;margin-bottom:14px}
+.bar i{display:block;height:100%;width:0;background:#8fb8ff;transition:width .3s}
+.add{display:flex;gap:6px;margin-bottom:10px}
+.add input,.add select{background:#262629;color:#fff;border:1px solid #3a3a40;border-radius:8px;padding:10px;font-size:15px}
+.add input[type=text]{flex:1;min-width:0}
+.add button{background:#8fb8ff;color:#111;border:0;border-radius:8px;padding:0 16px;font-size:15px;font-weight:700;cursor:pointer}
+.tabs{display:flex;gap:6px;margin:14px 0 8px}
+.tabs button{flex:1;background:#262629;color:#9aa0b4;border:0;border-radius:8px;padding:8px;font-size:14px;cursor:pointer}
+.tabs button.on{background:#34343a;color:#fff;font-weight:700}
+h3{font-size:12px;color:#8a90a6;margin:16px 0 6px;font-weight:600}
+.item{display:flex;align-items:center;gap:10px;background:#222225;border-radius:9px;padding:11px 10px;margin-bottom:6px}
+.item input[type=checkbox]{width:20px;height:20px;accent-color:#8fb8ff;flex:none}
+.item .tx{flex:1;font-size:15px;word-break:break-all}
+.item .tm{font-size:12px;color:#8fb8ff;flex:none}
+.item.done .tx{text-decoration:line-through;color:#6c7080}
+.item.done .tm{color:#6c7080}
+.item.late{border-left:3px solid #ff8f8f}
+.item.late .tm{color:#ff8f8f}
+.item.next{border-left:3px solid #8fb8ff;background:#26303f}
+.x{background:none;border:0;color:#6c7080;font-size:15px;cursor:pointer;padding:2px 6px}
+.mv{font-size:11px}
+.empty{color:#6c7080;font-size:14px;text-align:center;padding:26px 0}
+.foot{margin-top:22px;display:flex;gap:8px;justify-content:center}
+.foot button{background:none;border:1px solid #3a3a40;color:#8a90a6;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer}
+</style></head><body>
+<div class="top"><div><div class="date" id="date"></div><div class="now" id="now"></div></div></div>
+<div class="sum" id="sum"></div>
+<div class="bar"><i id="fill"></i></div>
+
+<form class="add" id="f">
+  <input type="text" id="txt" placeholder="할 일 입력 후 Enter" autocomplete="off">
+  <input type="time" id="tm">
+  <select id="dd"><option value="0">오늘</option><option value="1">내일</option></select>
+  <button>+</button>
+</form>
+
+<div class="tabs" id="tabs">
+  <button data-t="today" class="on">오늘</button>
+  <button data-t="tomorrow">내일</button>
+  <button data-t="later">이후</button>
+</div>
+<div id="list"></div>
+
+<div class="foot">
+  <button id="clr">완료한 일 지우기</button>
+  <button id="exp">백업 복사</button>
+  <button id="imp">백업 불러오기</button>
+</div>
+
+<script>
+var KEY='mog-planner-v1',tab='today',tasks=[];
+try{tasks=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){tasks=[]}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(tasks))}catch(e){}}
+function z(n){return n<10?'0'+n:''+n}
+var fmt=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',weekday:'short'});
+var DAYS={Sun:'일',Mon:'월',Tue:'화',Wed:'수',Thu:'목',Fri:'금',Sat:'토'};
+function now(){var o={};fmt.formatToParts(new Date()).forEach(function(x){o[x.type]=x.value});return o}
+function dstr(o,add){var d=new Date(Date.UTC(+o.year,+o.month-1,+o.day+(add||0)));return d.getUTCFullYear()+'-'+z(d.getUTCMonth()+1)+'-'+z(d.getUTCDate())}
+function esc(s){return s.replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+
+function render(){
+  var o=now(),today=dstr(o),tom=dstr(o,1),hm=o.hour+':'+o.minute;
+  document.getElementById('date').textContent=o.year+'.'+o.month+'.'+o.day+' ('+DAYS[o.weekday]+')';
+  document.getElementById('now').textContent=hm;
+  var mine=tasks.filter(function(t){return t.date<=today});           // 밀린 일 + 오늘
+  var todo=mine.filter(function(t){return !t.done}),done=mine.filter(function(t){return t.done&&t.date===today});
+  var total=todo.length+done.length;
+  document.getElementById('sum').innerHTML=todo.length?'오늘 남은 일 <b>'+todo.length+'</b>개':(total?'🎉 오늘 할 일 끝!':'오늘 할 일을 추가해보세요');
+  document.getElementById('fill').style.width=(total?done.length/total*100:0)+'%';
+
+  var rows=[],html='';
+  function sortT(a,b){return (a.time||'99:99')<(b.time||'99:99')?-1:(a.time||'99:99')>(b.time||'99:99')?1:a.id-b.id}
+  if(tab==='today'){
+    var late=todo.filter(function(t){return t.date<today}).sort(function(a,b){return a.date<b.date?-1:1});
+    var td=todo.filter(function(t){return t.date===today}).sort(sortT);
+    var nextId=(td.filter(function(t){return t.time&&t.time>=hm})[0]||{}).id;
+    if(late.length){html+='<h3>⚠️ 밀린 일</h3>'+late.map(function(t){return item(t,'late',today,tom)}).join('')}
+    html+='<h3>오늘 할 일</h3>'+(td.length?td.map(function(t){return item(t,t.id===nextId?'next':(t.time&&t.time<hm?'late':''),today,tom)}).join(''):'<div class="empty">남은 일 없음 ✨</div>');
+    if(done.length)html+='<h3>완료 '+done.length+'</h3>'+done.sort(sortT).map(function(t){return item(t,'done',today,tom)}).join('');
+  }else{
+    var list=tasks.filter(function(t){return tab==='tomorrow'?t.date===tom:t.date>tom}).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:sortT(a,b)});
+    html=list.length?list.map(function(t){return item(t,t.done?'done':'',today,tom)}).join(''):'<div class="empty">비어 있어요</div>';
+  }
+  document.getElementById('list').innerHTML=html;
+}
+function item(t,cls,today,tom){
+  var mv=t.date>today?'':'<button class="x mv" data-mv="'+t.id+'" title="내일로 미루기">내일▶</button>';
+  var dl=(tab==='later')?'<span class="tm">'+t.date.slice(5)+'</span>':'';
+  return '<div class="item '+cls+'"><input type="checkbox" data-id="'+t.id+'"'+(t.done?' checked':'')+'>'+
+    (t.time?'<span class="tm">'+t.time+'</span>':'')+dl+'<span class="tx">'+esc(t.text)+'</span>'+
+    (t.done?'':mv)+'<button class="x" data-rm="'+t.id+'">✕</button></div>';
+}
+document.getElementById('f').onsubmit=function(e){
+  e.preventDefault();
+  var v=document.getElementById('txt').value.trim();if(!v)return;
+  var d=+document.getElementById('dd').value,o=now();
+  tasks.push({id:Date.now(),text:v,time:document.getElementById('tm').value,date:dstr(o,d),done:false});
+  document.getElementById('txt').value='';document.getElementById('tm').value='';
+  tab=d?'tomorrow':'today';syncTabs();save();render();
+};
+document.getElementById('list').onclick=function(e){
+  var el=e.target,id;
+  if(el.dataset.rm){id=+el.dataset.rm;tasks=tasks.filter(function(t){return t.id!==id})}
+  else if(el.dataset.mv){id=+el.dataset.mv;tasks.forEach(function(t){if(t.id===id)t.date=dstr(now(),1)})}
+  else if(el.dataset.id){id=+el.dataset.id;tasks.forEach(function(t){if(t.id===id)t.done=el.checked})}
+  else return;
+  save();render();
+};
+function syncTabs(){[].forEach.call(document.querySelectorAll('#tabs button'),function(b){b.classList.toggle('on',b.dataset.t===tab)})}
+document.getElementById('tabs').onclick=function(e){if(e.target.dataset.t){tab=e.target.dataset.t;syncTabs();render()}};
+document.getElementById('clr').onclick=function(){tasks=tasks.filter(function(t){return !t.done});save();render()};
+document.getElementById('exp').onclick=function(){
+  var s=JSON.stringify(tasks);
+  (navigator.clipboard?navigator.clipboard.writeText(s):Promise.reject()).then(function(){alert('복사됨! 다른 기기에서 "백업 불러오기"에 붙여넣으세요')},function(){prompt('아래 내용을 복사하세요',s)});
+};
+document.getElementById('imp').onclick=function(){
+  var s=prompt('복사해둔 백업을 붙여넣으세요');if(!s)return;
+  try{var a=JSON.parse(s);if(!Array.isArray(a))throw 0;tasks=a;save();render()}catch(e){alert('형식이 올바르지 않아요')}
+};
+render();setInterval(render,30000);
+</script></body></html>
