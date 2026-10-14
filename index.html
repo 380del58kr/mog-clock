@@ -1,16 +1,22 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<script>try{var m=location.search.match(/theme=(light|dark)/);if(m)document.documentElement.setAttribute("data-theme",m[1])}catch(e){}</script>
 <style>
+:root{--tile:#fff;--digit:#111;--ring:#2a2a2a;--mut:#9aa0b4;--mut2:#8a90a6;--track:rgba(255,255,255,.16);--acc:#8fb8ff;}
+@media (prefers-color-scheme:light){:root{--tile:#1f1f23;--digit:#fff;--ring:#d8d8de;--mut:#6b7080;--mut2:#6b7080;--track:rgba(0,0,0,.1);--acc:#2f6fe4;}}
+:root[data-theme=dark]{--tile:#fff;--digit:#111;--ring:#2a2a2a;--mut:#9aa0b4;--mut2:#8a90a6;--track:rgba(255,255,255,.16);--acc:#8fb8ff;}
+:root[data-theme=light]{--tile:#1f1f23;--digit:#fff;--ring:#d8d8de;--mut:#6b7080;--mut2:#6b7080;--track:rgba(0,0,0,.1);--acc:#2f6fe4;}
+
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{background:#191919}
+html,body{background:transparent}
 body{font-family:-apple-system,"Pretendard","Malgun Gothic",sans-serif;padding:16px 14px;display:flex;flex-direction:column;align-items:flex-start;gap:12px;min-height:100vh}
-.date{font-size:12px;letter-spacing:.08em;color:#9aa0b4}
+.date{font-size:12px;letter-spacing:.08em;color:var(--mut)}
 .row{display:flex;align-items:center;gap:7px}
-.pair{display:flex;background:#fff;border-radius:7px;padding:0 5px;border:2px solid #fff;box-shadow:0 0 0 1px #2a2a2a}
+.pair{display:flex;background:var(--tile);border-radius:7px;padding:0 5px;border:2px solid var(--tile);box-shadow:0 0 0 1px var(--ring)}
 .sep{display:flex;flex-direction:column;gap:9px}
-.sep i{display:block;width:6px;height:6px;background:#fff;border-radius:1px}
+.sep i{display:block;width:6px;height:6px;background:var(--tile);border-radius:1px}
 .d{position:relative;width:clamp(24px,7.4vw,36px);height:clamp(40px,12vw,58px);perspective:420px;font:800 clamp(34px,10vw,52px)/1 "Helvetica Neue",Arial,sans-serif;letter-spacing:-.02em}
-.d>div{position:absolute;left:0;right:0;height:calc(50% + .5px);overflow:hidden;background:#fff;color:#111;backface-visibility:hidden}
+.d>div{position:absolute;left:0;right:0;height:calc(50% + .5px);overflow:hidden;background:var(--tile);color:var(--digit);backface-visibility:hidden}
 .t,.ft{top:0}
 .b,.fb{bottom:0}
 .t span,.ft span{height:200%;display:flex;align-items:center;justify-content:center}
@@ -23,9 +29,9 @@ body{font-family:-apple-system,"Pretendard","Malgun Gothic",sans-serif;padding:1
 @keyframes ft{to{transform:rotateX(-90deg)}}
 @keyframes fb{to{transform:rotateX(0)}}
 .prog{width:100%;max-width:300px;display:flex;flex-direction:column;gap:4px}
-.bar{height:4px;background:#34343a;border-radius:3px;overflow:hidden}
-.bar i{display:block;height:100%;width:0;background:#8fb8ff;border-radius:3px;transition:width 1s linear}
-.lbl{display:flex;justify-content:space-between;font-size:11px;color:#8a90a6}
+.bar{height:4px;background:var(--track);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:var(--acc);border-radius:3px;transition:width 1s linear}
+.lbl{display:flex;justify-content:space-between;font-size:11px;color:var(--mut2)}
 </style></head><body>
 <div class="date" id="date"></div>
 <div class="row" id="clock"></div>
