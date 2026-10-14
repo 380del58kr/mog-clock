@@ -128,14 +128,7 @@ async function api(method,path,body){
   if(!r.ok){var e=new Error('API '+r.status);e.status=r.status;throw e}
   return r.json();
 }
-async function listId(){
-  var id=lsGet(LIST_KEY);
-  if(id)return id;
-  var res=await api('GET','/users/@me/lists?maxResults=100');
-  var f=(res.items||[]).filter(function(l){return l.title==='MOG'})[0];
-  if(!f)f=await api('POST','/users/@me/lists',{title:'MOG'});
-  lsSet(LIST_KEY,f.id);return f.id;
-}
+async function listId(){return '@default'} // 캘린더·Tasks 앱과 같은 기본 목록("내 할 일")을 사용
 function toDue(date){return date+'T00:00:00.000Z'}
 function fromG(g,today){
   var m=(g.notes||'').match(/⏰\s*(\d\d:\d\d)/);
@@ -156,7 +149,6 @@ async function pull(){
   }catch(e){handleErr(e)}
 }
 function handleErr(e){
-  if(e&&e.status===404){lsDel(LIST_KEY)}
   stMsg=(e&&e.message==='401')?'☁ 탭하면 재연결':'☁ 동기화 오류';
   setStatus();
 }
@@ -197,7 +189,7 @@ document.getElementById('st').onclick=async function(){
 };
 document.getElementById('cid').onclick=function(){
   var c=prompt('OAuth Client ID',lsGet(CID_KEY)||DEFAULT_CID);if(c===null)return;
-  lsSet(CID_KEY,c.trim());tokClient=null;tok='';tokExp=0;lsDel(LIST_KEY);setStatus();
+  lsSet(CID_KEY,c.trim());tokClient=null;tok='';tokExp=0;setStatus();
 };
 document.addEventListener('visibilitychange',function(){if(!document.hidden)pull()});
 setInterval(pull,60000);
