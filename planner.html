@@ -6,9 +6,12 @@
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{background:#191919;color:#e8e8ec}
 body{font-family:-apple-system,"Pretendard","Malgun Gothic",sans-serif;max-width:560px;margin:0 auto;padding:18px 14px 80px}
-.top{display:flex;justify-content:space-between;align-items:flex-end}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
 .date{font-size:13px;color:#9aa0b4;letter-spacing:.06em}
 .now{font:800 34px/1.1 "Helvetica Neue",Arial,sans-serif;letter-spacing:-.02em}
+#st{background:#262629;border:1px solid #3a3a40;color:#9aa0b4;border-radius:999px;padding:6px 11px;font-size:12px;cursor:pointer;white-space:nowrap}
+#st.ok{color:#8fe3a8;border-color:#2f5a40}
+#st.warn{color:#ffcf8f;border-color:#6a5230}
 .sum{margin:12px 0 4px;font-size:15px;color:#c9cdda}
 .sum b{color:#8fb8ff;font-size:20px}
 .bar{height:5px;background:#34343a;border-radius:3px;overflow:hidden;margin-bottom:14px}
@@ -33,10 +36,13 @@ h3{font-size:12px;color:#8a90a6;margin:16px 0 6px;font-weight:600}
 .x{background:none;border:0;color:#6c7080;font-size:15px;cursor:pointer;padding:2px 6px}
 .mv{font-size:11px}
 .empty{color:#6c7080;font-size:14px;text-align:center;padding:26px 0}
-.foot{margin-top:22px;display:flex;gap:8px;justify-content:center}
+.foot{margin-top:22px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap}
 .foot button{background:none;border:1px solid #3a3a40;color:#8a90a6;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer}
 </style></head><body>
-<div class="top"><div><div class="date" id="date"></div><div class="now" id="now"></div></div></div>
+<div class="top">
+  <div><div class="date" id="date"></div><div class="now" id="now"></div></div>
+  <button id="st" type="button">☁ Google 연결</button>
+</div>
 <div class="sum" id="sum"></div>
 <div class="bar"><i id="fill"></i></div>
 
@@ -58,12 +64,21 @@ h3{font-size:12px;color:#8a90a6;margin:16px 0 6px;font-weight:600}
   <button id="clr">완료한 일 지우기</button>
   <button id="exp">백업 복사</button>
   <button id="imp">백업 불러오기</button>
+  <button id="cid">Client ID 변경</button>
 </div>
 
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
-var KEY='mog-planner-v1',tab='today',tasks=[];
-try{tasks=JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){tasks=[]}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(tasks))}catch(e){}}
+var KEY='mog-planner-v1',CID_KEY='mog-gcid',LIST_KEY='mog-glist',CONN_KEY='mog-gconn';
+var SCOPE='https://www.googleapis.com/auth/tasks';
+var API='https://tasks.googleapis.com/tasks/v1';
+var tab='today',tasks=[];
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function lsDel(k){try{localStorage.removeItem(k)}catch(e){}}
+try{tasks=JSON.parse(lsGet(KEY)||'[]')}catch(e){tasks=[]}
+tasks.forEach(function(t){t.id=String(t.id);if(t.g===undefined)t.g=false});
+function save(){lsSet(KEY,JSON.stringify(tasks))}
 function z(n){return n<10?'0'+n:''+n}
 var fmt=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',hourCycle:'h23',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',weekday:'short'});
 var DAYS={Sun:'일',Mon:'월',Tue:'화',Wed:'수',Thu:'목',Fri:'금',Sat:'토'};
@@ -71,64 +86,199 @@ function now(){var o={};fmt.formatToParts(new Date()).forEach(function(x){o[x.ty
 function dstr(o,add){var d=new Date(Date.UTC(+o.year,+o.month-1,+o.day+(add||0)));return d.getUTCFullYear()+'-'+z(d.getUTCMonth()+1)+'-'+z(d.getUTCDate())}
 function esc(s){return s.replace(/[&<>"]/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 
+/* ---------------- Google Tasks 동기화 ---------------- */
+var tok='',tokExp=0,tokP=null,tokClient=null,connected=lsGet(CONN_KEY)==='1';
+var q=Promise.resolve(),pending=0,lastSync=0,stMsg='';
+
+function setStatus(){
+  var b=document.getElementById('st');
+  if(!connected){b.className='';b.textContent='☁ Google 연결';return}
+  if(stMsg){b.className='warn';b.textContent=stMsg;return}
+  if(Date.now()>=tokExp){b.className='warn';b.textContent='☁ 탭하면 동기화';return}
+  b.className='ok';b.textContent='☁ 동기화됨'+(pending?' …':'');
+}
+function initClient(){
+  var cid=lsGet(CID_KEY);
+  if(tokClient||!cid||!(window.google&&google.accounts&&google.accounts.oauth2))return !!tokClient;
+  tokClient=google.accounts.oauth2.initTokenClient({client_id:cid,scope:SCOPE,callback:function(){}});
+  return true;
+}
+/* 반드시 사용자 클릭/입력 이벤트 안에서 동기 호출 (팝업 차단 방지) */
+function ensureToken(prompt){
+  if(tok&&Date.now()<tokExp-30000)return Promise.resolve(tok);
+  if(tokP)return tokP;
+  if(!initClient())return Promise.reject(new Error('Google 로그인 스크립트 로딩 중'));
+  tokP=new Promise(function(res,rej){
+    tokClient.callback=function(r){
+      tokP=null;
+      if(r&&r.access_token){tok=r.access_token;tokExp=Date.now()+(r.expires_in||3600)*1000;stMsg='';res(tok)}
+      else{rej(new Error((r&&r.error)||'auth'))}
+    };
+    tokClient.error_callback=function(e){tokP=null;rej(new Error((e&&e.type)||'popup'))};
+    tokClient.requestAccessToken({prompt:prompt===undefined?'':prompt});
+  });
+  return tokP;
+}
+async function api(method,path,body){
+  await ensureToken();
+  var r=await fetch(API+path,{method:method,headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+  if(r.status===401){tok='';tokExp=0;throw new Error('401')}
+  if(r.status===204)return null;
+  if(!r.ok){var e=new Error('API '+r.status);e.status=r.status;throw e}
+  return r.json();
+}
+async function listId(){
+  var id=lsGet(LIST_KEY);
+  if(id)return id;
+  var res=await api('GET','/users/@me/lists?maxResults=100');
+  var f=(res.items||[]).filter(function(l){return l.title==='MOG'})[0];
+  if(!f)f=await api('POST','/users/@me/lists',{title:'MOG'});
+  lsSet(LIST_KEY,f.id);return f.id;
+}
+function toDue(date){return date+'T00:00:00.000Z'}
+function fromG(g,today){
+  var m=(g.notes||'').match(/⏰\s*(\d\d:\d\d)/);
+  return {id:g.id,g:true,text:g.title||'(제목 없음)',time:m?m[1]:'',date:g.due?g.due.slice(0,10):today,done:g.status==='completed'};
+}
+async function pull(){
+  if(!connected||pending||Date.now()>=tokExp)return;
+  try{
+    var L=await listId(),o=now(),today=dstr(o);
+    var start=new Date(Date.UTC(+o.year,+o.month-1,+o.day)-9*3600*1000).toISOString();
+    var a=await api('GET','/lists/'+L+'/tasks?showCompleted=false&maxResults=100');
+    var b=await api('GET','/lists/'+L+'/tasks?showCompleted=true&showHidden=true&completedMin='+encodeURIComponent(start)+'&maxResults=100');
+    if(pending)return; // 그 사이 새 변경이 생기면 덮어쓰지 않음
+    var remote=(a.items||[]).concat((b.items||[]).filter(function(x){return x.status==='completed'})).map(function(g){return fromG(g,today)});
+    var seen={};remote=remote.filter(function(t){return seen[t.id]?false:(seen[t.id]=1)});
+    tasks=remote.concat(tasks.filter(function(t){return !t.g}));
+    lastSync=Date.now();stMsg='';save();render();
+  }catch(e){handleErr(e)}
+}
+function handleErr(e){
+  if(e&&e.status===404){lsDel(LIST_KEY)}
+  stMsg=(e&&e.message==='401')?'☁ 탭하면 재연결':'☁ 동기화 오류';
+  setStatus();
+}
+/* 변경 작업을 순서대로 실행 */
+function op(fn){
+  pending++;setStatus();
+  q=q.then(fn).catch(handleErr).then(function(){pending--;if(!pending)pull();setStatus()});
+}
+function pushLocal(){ // 연결 전에 만든 로컬 항목을 Google로 올림
+  tasks.filter(function(t){return !t.g}).forEach(function(t){gInsert(t)});
+}
+function gInsert(t){
+  op(async function(){
+    var L=await listId();
+    var r=await api('POST','/lists/'+L+'/tasks',{title:t.text,notes:t.time?'⏰'+t.time:'',due:toDue(t.date)});
+    if(t.done)await api('PATCH','/lists/'+L+'/tasks/'+r.id,{status:'completed'});
+    t.id=r.id;t.g=true;save();
+  });
+}
+function gPatch(id,body){op(async function(){var L=await listId();await api('PATCH','/lists/'+L+'/tasks/'+id,body)})}
+function gDelete(id){op(async function(){var L=await listId();try{await api('DELETE','/lists/'+L+'/tasks/'+id)}catch(e){if(e.status!==404)throw e}})}
+
+document.getElementById('st').onclick=async function(){
+  if(connected&&Date.now()<tokExp&&!stMsg){
+    if(confirm('Google 연결을 해제할까요?\n(Google Tasks의 데이터는 그대로 남아요)')){connected=false;lsDel(CONN_KEY);tok='';tokExp=0;setStatus()}
+    return;
+  }
+  var cid=lsGet(CID_KEY);
+  if(!cid){
+    cid=prompt('Google Cloud에서 만든 OAuth Client ID를 붙여넣으세요\n(예: 1234-abc.apps.googleusercontent.com)');
+    if(!cid)return;lsSet(CID_KEY,cid.trim());tokClient=null;
+  }
+  try{
+    var p=ensureToken(connected?'':'consent'); // 동기 호출 유지
+    await p;connected=true;lsSet(CONN_KEY,'1');stMsg='';setStatus();
+    pushLocal();op(async function(){});   // 올린 뒤 pull 실행
+  }catch(e){stMsg='☁ 연결 실패: '+e.message;setStatus()}
+};
+document.getElementById('cid').onclick=function(){
+  var c=prompt('OAuth Client ID',lsGet(CID_KEY)||'');if(c===null)return;
+  lsSet(CID_KEY,c.trim());tokClient=null;tok='';tokExp=0;lsDel(LIST_KEY);setStatus();
+};
+document.addEventListener('visibilitychange',function(){if(!document.hidden)pull()});
+setInterval(pull,60000);
+
+/* ---------------- 화면 ---------------- */
 function render(){
   var o=now(),today=dstr(o),tom=dstr(o,1),hm=o.hour+':'+o.minute;
   document.getElementById('date').textContent=o.year+'.'+o.month+'.'+o.day+' ('+DAYS[o.weekday]+')';
   document.getElementById('now').textContent=hm;
-  var mine=tasks.filter(function(t){return t.date<=today});           // 밀린 일 + 오늘
+  var mine=tasks.filter(function(t){return t.date<=today});
   var todo=mine.filter(function(t){return !t.done}),done=mine.filter(function(t){return t.done&&t.date===today});
   var total=todo.length+done.length;
   document.getElementById('sum').innerHTML=todo.length?'오늘 남은 일 <b>'+todo.length+'</b>개':(total?'🎉 오늘 할 일 끝!':'오늘 할 일을 추가해보세요');
   document.getElementById('fill').style.width=(total?done.length/total*100:0)+'%';
+  setStatus();
 
-  var rows=[],html='';
-  function sortT(a,b){return (a.time||'99:99')<(b.time||'99:99')?-1:(a.time||'99:99')>(b.time||'99:99')?1:a.id-b.id}
+  var html='';
+  function sortT(a,b){var x=a.time||'99:99',y=b.time||'99:99';return x<y?-1:x>y?1:(a.id<b.id?-1:1)}
   if(tab==='today'){
     var late=todo.filter(function(t){return t.date<today}).sort(function(a,b){return a.date<b.date?-1:1});
     var td=todo.filter(function(t){return t.date===today}).sort(sortT);
-    var nextId=(td.filter(function(t){return t.time&&t.time>=hm})[0]||{}).id;
-    if(late.length){html+='<h3>⚠️ 밀린 일</h3>'+late.map(function(t){return item(t,'late',today,tom)}).join('')}
-    html+='<h3>오늘 할 일</h3>'+(td.length?td.map(function(t){return item(t,t.id===nextId?'next':(t.time&&t.time<hm?'late':''),today,tom)}).join(''):'<div class="empty">남은 일 없음 ✨</div>');
-    if(done.length)html+='<h3>완료 '+done.length+'</h3>'+done.sort(sortT).map(function(t){return item(t,'done',today,tom)}).join('');
+    var nx=td.filter(function(t){return t.time&&t.time>=hm})[0],nextId=nx?nx.id:null;
+    if(late.length)html+='<h3>⚠️ 밀린 일</h3>'+late.map(function(t){return item(t,'late',today)}).join('');
+    html+='<h3>오늘 할 일</h3>'+(td.length?td.map(function(t){return item(t,t.id===nextId?'next':(t.time&&t.time<hm?'late':''),today)}).join(''):'<div class="empty">남은 일 없음 ✨</div>');
+    if(done.length)html+='<h3>완료 '+done.length+'</h3>'+done.sort(sortT).map(function(t){return item(t,'done',today)}).join('');
   }else{
     var list=tasks.filter(function(t){return tab==='tomorrow'?t.date===tom:t.date>tom}).sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:sortT(a,b)});
-    html=list.length?list.map(function(t){return item(t,t.done?'done':'',today,tom)}).join(''):'<div class="empty">비어 있어요</div>';
+    html=list.length?list.map(function(t){return item(t,t.done?'done':'',today)}).join(''):'<div class="empty">비어 있어요</div>';
   }
   document.getElementById('list').innerHTML=html;
 }
-function item(t,cls,today,tom){
-  var mv=t.date>today?'':'<button class="x mv" data-mv="'+t.id+'" title="내일로 미루기">내일▶</button>';
+function item(t,cls,today){
+  var mv=t.date>today?'':'<button class="x mv" data-mv="'+esc(t.id)+'" title="내일로 미루기">내일▶</button>';
   var dl=(tab==='later')?'<span class="tm">'+t.date.slice(5)+'</span>':'';
-  return '<div class="item '+cls+'"><input type="checkbox" data-id="'+t.id+'"'+(t.done?' checked':'')+'>'+
+  return '<div class="item '+cls+'"><input type="checkbox" data-id="'+esc(t.id)+'"'+(t.done?' checked':'')+'>'+
     (t.time?'<span class="tm">'+t.time+'</span>':'')+dl+'<span class="tx">'+esc(t.text)+'</span>'+
-    (t.done?'':mv)+'<button class="x" data-rm="'+t.id+'">✕</button></div>';
+    (t.done?'':mv)+'<button class="x" data-rm="'+esc(t.id)+'">✕</button></div>';
 }
+function find(id){return tasks.filter(function(t){return t.id===id})[0]}
+function gesture(){if(connected){try{ensureToken().catch(function(){})}catch(e){}}}
+
 document.getElementById('f').onsubmit=function(e){
   e.preventDefault();
   var v=document.getElementById('txt').value.trim();if(!v)return;
-  var d=+document.getElementById('dd').value,o=now();
-  tasks.push({id:Date.now(),text:v,time:document.getElementById('tm').value,date:dstr(o,d),done:false});
+  gesture();
+  var d=+document.getElementById('dd').value;
+  var t={id:'l'+Date.now(),g:false,text:v,time:document.getElementById('tm').value,date:dstr(now(),d),done:false};
+  tasks.push(t);
   document.getElementById('txt').value='';document.getElementById('tm').value='';
   tab=d?'tomorrow':'today';syncTabs();save();render();
+  if(connected)gInsert(t);
 };
 document.getElementById('list').onclick=function(e){
-  var el=e.target,id;
-  if(el.dataset.rm){id=+el.dataset.rm;tasks=tasks.filter(function(t){return t.id!==id})}
-  else if(el.dataset.mv){id=+el.dataset.mv;tasks.forEach(function(t){if(t.id===id)t.date=dstr(now(),1)})}
-  else if(el.dataset.id){id=+el.dataset.id;tasks.forEach(function(t){if(t.id===id)t.done=el.checked})}
+  var el=e.target,t;
+  if(el.dataset.rm){gesture();t=find(el.dataset.rm);tasks=tasks.filter(function(x){return x!==t});if(t&&t.g&&connected)gDelete(t.id)}
+  else if(el.dataset.mv){gesture();t=find(el.dataset.mv);if(t){t.date=dstr(now(),1);if(t.g&&connected)gPatch(t.id,{due:toDue(t.date)})}}
+  else if(el.dataset.id){gesture();t=find(el.dataset.id);if(t){t.done=el.checked;if(t.g&&connected)gPatch(t.id,el.checked?{status:'completed'}:{status:'needsAction',completed:null})}}
   else return;
   save();render();
 };
 function syncTabs(){[].forEach.call(document.querySelectorAll('#tabs button'),function(b){b.classList.toggle('on',b.dataset.t===tab)})}
 document.getElementById('tabs').onclick=function(e){if(e.target.dataset.t){tab=e.target.dataset.t;syncTabs();render()}};
-document.getElementById('clr').onclick=function(){tasks=tasks.filter(function(t){return !t.done});save();render()};
+document.getElementById('clr').onclick=function(){
+  gesture();
+  tasks.filter(function(t){return t.done&&t.g&&connected}).forEach(function(t){gDelete(t.id)});
+  tasks=tasks.filter(function(t){return !t.done});save();render();
+};
 document.getElementById('exp').onclick=function(){
   var s=JSON.stringify(tasks);
-  (navigator.clipboard?navigator.clipboard.writeText(s):Promise.reject()).then(function(){alert('복사됨! 다른 기기에서 "백업 불러오기"에 붙여넣으세요')},function(){prompt('아래 내용을 복사하세요',s)});
+  (navigator.clipboard?navigator.clipboard.writeText(s):Promise.reject()).then(function(){alert('복사됨!')},function(){prompt('아래 내용을 복사하세요',s)});
 };
 document.getElementById('imp').onclick=function(){
   var s=prompt('복사해둔 백업을 붙여넣으세요');if(!s)return;
-  try{var a=JSON.parse(s);if(!Array.isArray(a))throw 0;tasks=a;save();render()}catch(e){alert('형식이 올바르지 않아요')}
+  try{var a=JSON.parse(s);if(!Array.isArray(a))throw 0;
+    a.forEach(function(t){t.id='l'+Date.now()+Math.random().toString(36).slice(2,6);t.g=false});
+    tasks=tasks.concat(a);save();render();if(connected)pushLocal()}
+  catch(e){alert('형식이 올바르지 않아요')}
 };
 render();setInterval(render,30000);
+/* 로그인 스크립트가 로드되면, 이전에 연결했던 경우 첫 터치 때 자동 재연결 */
+if(connected){document.addEventListener('pointerdown',function f(){
+  document.removeEventListener('pointerdown',f);
+  ensureToken().then(function(){setStatus();pull()}).catch(function(){setStatus()});
+},{once:true})}
 </script></body></html>
