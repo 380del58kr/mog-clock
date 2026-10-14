@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<script>try{var m=location.search.match(/theme=(light|dark)/);if(m)document.documentElement.setAttribute("data-theme",m[1])}catch(e){}</script>
+<script>var MOGT=null;function applyTheme(t){var r=document.documentElement;MOGT=(t==="light"||t==="dark")?t:null;if(MOGT){r.setAttribute("data-theme",MOGT);r.style.colorScheme=MOGT}else{r.removeAttribute("data-theme");r.style.colorScheme="light dark"}}(function(){var t=null;try{var m=location.search.match(/theme=(light|dark)/);t=m?m[1]:localStorage.getItem("mog-theme")}catch(e){}applyTheme(t)})();window.addEventListener("storage",function(e){if(e.key==="mog-theme")applyTheme(e.newValue)});</script>
 <style>
 :root{--tile:#fff;--digit:#111;--ring:#2a2a2a;--mut:#9aa0b4;--mut2:#8a90a6;--track:rgba(255,255,255,.16);--acc:#8fb8ff;}
 @media (prefers-color-scheme:light){:root{--tile:#1f1f23;--digit:#fff;--ring:#d8d8de;--mut:#6b7080;--mut2:#6b7080;--track:rgba(0,0,0,.1);--acc:#2f6fe4;}}
