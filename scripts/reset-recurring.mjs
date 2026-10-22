@@ -1,9 +1,11 @@
 // 정기 업무("🌿 정기 업무" DB)의 "이번 회차 완료" 체크를 새 회차가 시작될 때 자동으로 해제한다.
 //  - 매주 월요일(한국 시간)  : 반복이 "매주"인 항목
 //  - 매월 1일(한국 시간)     : 반복이 "매달"인 항목
-// 환경 변수: NOTION_TOKEN(필수), NOTION_DB_ID, MODE(auto|weekly|monthly|both), NOW_ISO(테스트용), NOTION_API_BASE(테스트용)
+// 환경 변수: NOTION_TOKEN(필수), NOTION_DB_IDS(쉼표로 여러 개), MODE(auto|weekly|monthly|both), NOW_ISO(테스트용), NOTION_API_BASE(테스트용)
 const TOKEN = process.env.NOTION_TOKEN;
-const DB = process.env.NOTION_DB_ID || '641c1e1d2ece4434b12a868ded07ee91';
+// MOG / CLAP 의 "🌿 정기 업무" DB
+const DBS = (process.env.NOTION_DB_IDS || '641c1e1d2ece4434b12a868ded07ee91,8fce6e6fce2b83f2a2cd816ec748fa03')
+  .split(',').map((x) => x.trim()).filter(Boolean);
 const BASE = process.env.NOTION_API_BASE || 'https://api.notion.com/v1';
 const MODE = (process.env.MODE || 'auto').trim() || 'auto';
 const CHECK_PROP = '이번 회차 완료';
@@ -40,26 +42,34 @@ async function api(method, path, body, attempt = 1) {
   return res.json();
 }
 
-const rows = [];
-let cursor;
-do {
-  const r = await api('POST', `/databases/${DB}/query`, {
-    filter: { property: CHECK_PROP, checkbox: { equals: true } },
-    page_size: 100,
-    ...(cursor ? { start_cursor: cursor } : {}),
-  });
-  rows.push(...r.results);
-  cursor = r.has_more ? r.next_cursor : undefined;
-} while (cursor);
-
 let reset = 0;
-for (const page of rows) {
-  const kind = page.properties?.[KIND_PROP]?.select?.name || '';
-  const title = (page.properties?.['루틴']?.title || []).map((t) => t.plain_text).join('') || '(제목 없음)';
-  const hit = (doWeekly && kind.includes('매주')) || (doMonthly && kind.includes('매달'));
-  if (!hit) continue;
-  await api('PATCH', `/pages/${page.id}`, { properties: { [CHECK_PROP]: { checkbox: false } } });
-  reset++;
-  console.log(`해제: [${kind}] ${title}`);
+for (const DB of DBS) {
+  const rows = [];
+  let cursor;
+  try {
+    do {
+      const r = await api('POST', `/databases/${DB}/query`, {
+        filter: { property: CHECK_PROP, checkbox: { equals: true } },
+        page_size: 100,
+        ...(cursor ? { start_cursor: cursor } : {}),
+      });
+      rows.push(...r.results);
+      cursor = r.has_more ? r.next_cursor : undefined;
+    } while (cursor);
+  } catch (e) {
+    // 한쪽 DB가 통합(Integration)에 공유되지 않았어도 나머지는 계속 처리
+    console.log(`::warning::DB ${DB} 조회 실패: ${e.message}`);
+    process.exitCode = 1;
+    continue;
+  }
+  for (const page of rows) {
+    const kind = page.properties?.[KIND_PROP]?.select?.name || '';
+    const title = (page.properties?.['루틴']?.title || []).map((t) => t.plain_text).join('') || '(제목 없음)';
+    const hit = (doWeekly && kind.includes('매주')) || (doMonthly && kind.includes('매달'));
+    if (!hit) continue;
+    await api('PATCH', `/pages/${page.id}`, { properties: { [CHECK_PROP]: { checkbox: false } } });
+    reset++;
+    console.log(`해제: [${DB.slice(0, 8)}] [${kind}] ${title}`);
+  }
 }
 console.log(reset ? `완료: ${reset}개 해제` : '해제할 항목 없음');
