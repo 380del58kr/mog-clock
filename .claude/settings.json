@@ -1,29 +1,5 @@
 {
   "permissions": {
-    "allow": [
-      "mcp__Notion__notion-fetch",
-      "mcp__Notion__notion-search",
-      "mcp__Notion__notion-query-data-sources",
-      "mcp__Notion__notion-update-page",
-      "mcp__Notion__notion-update-view",
-      "mcp__Notion__notion-update-data-source",
-      "mcp__Notion__notion-create-view",
-      "mcp__Notion__notion-create-pages",
-      "mcp__Notion__notion-duplicate-page",
-      "mcp__Notion__notion-get-file-download-urls",
-      "mcp__github__get_file_contents",
-      "mcp__github__list_pull_requests",
-      "mcp__github__pull_request_read",
-      "mcp__github__create_pull_request",
-      "mcp__github__merge_pull_request",
-      "mcp__github__actions_list",
-      "Bash(git status:*)",
-      "Bash(git diff:*)",
-      "Bash(git fetch:*)",
-      "Bash(git checkout:*)",
-      "Bash(git add:*)",
-      "Bash(git commit:*)",
-      "Bash(git push:*)"
-    ]
+    "allow": ["mcp__Notion__*", "mcp__github__*", "Bash"]
   }
 }
